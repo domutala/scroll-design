@@ -1,5 +1,9 @@
 <script setup lang="ts"></script>
 
 <template>
-  <slot />
+  <div style="display: flex">
+    <div>
+      <slot />
+    </div>
+  </div>
 </template>
