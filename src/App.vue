@@ -6,7 +6,7 @@ import ScrollDesignContainer from '@/components/ScrollDesignContainer.vue'
 <template>
   <scroll-design-container>
     <scroll-design
-      v-for="i in 10"
+      v-for="i in 3"
       :key="i"
       :line-color="
         i % 2 === 0

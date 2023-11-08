@@ -7,51 +7,91 @@ const isVisible = ref(false)
 const instance = getCurrentInstance()
 const lineHeight = ref(0)
 
-window.addEventListener('scroll', scroll)
+onMounted(mounted)
+function mounted() {
+  addEventListener('scroll', scroll)
+  addEventListener('resize', setHeight)
+  addEventListener('scroll-design', (e) => onVisible(e as any))
+  setHeight()
+  scroll()
+}
 
-onMounted(setHeight)
+function onVisible(e: CustomEvent) {
+  if (!instance?.proxy) return
+
+  const $el = instance.proxy.$el as HTMLDivElement
+  const brothers = $el.parentElement!.querySelectorAll('.scroll-design')
+
+  let index = 0
+  brothers.forEach((child, i) => {
+    if (child === $el) index = i
+  })
+
+  if (index !== e.detail.index) scroll()
+}
+
 function setHeight() {
+  lineHeight.value = 0
   if (!instance?.proxy) return
   const $el = instance.proxy.$el as HTMLDivElement
   lineHeight.value = $el.getBoundingClientRect().height
 }
 
-onMounted(scroll)
 function scroll() {
   if (!instance?.proxy) return
 
   const $el = instance.proxy.$el as HTMLDivElement
   const rect = $el.getBoundingClientRect()
   const viewportHeight = window.innerHeight
-
-  const brothers = $el.parentElement!.querySelectorAll(
-    '.scroll-design'
-  ) as NodeListOf<HTMLDivElement>
+  const brothers = $el.parentElement!.querySelectorAll('.scroll-design')
 
   let index = 0
-  let is = false
-
   brothers.forEach((child, i) => {
     if (child === $el) index = i
   })
 
-  if (brothers.item(index - 1)) {
-    if (brothers.item(index - 1).getAttribute('visible') === 'true') {
-      is = isVisible.value = rect.top < viewportHeight * 0.7
-    }
-  } else is = isVisible.value = rect.top < viewportHeight * 0.5
+  if ($el.getAttribute('visible') !== null) {
+    const isntV = rect.top < viewportHeight * 0.75
+    if (isntV) return
 
-  isVisible.value = is
+    const cadet = brothers.item(index + 1)
+    if (cadet && cadet.getAttribute('visible') !== null) return
+
+    isVisible.value = false
+    setTimeout(() => {
+      $el.removeAttribute('visible')
+      window.dispatchEvent(
+        new CustomEvent('scroll-design', { detail: { index, visible: isVisible.value } })
+      )
+    }, 500)
+  } else {
+    // si l'élément est visible dans l'écran
+    const isV = rect.top < viewportHeight * 0.5
+    if (!isV) return
+
+    const elder = brothers.item(index - 1)
+    if (elder && elder.getAttribute('visible') === null) return
+
+    isVisible.value = true
+    setTimeout(() => {
+      $el.setAttribute('visible', '')
+      dispatchEvent(
+        new CustomEvent('scroll-design', { detail: { index, visible: isVisible.value } })
+      )
+    }, 500)
+  }
 }
 
 onBeforeUnmount(destroy)
 function destroy() {
-  window.removeEventListener('scroll', scroll)
+  removeEventListener('resize', setHeight)
+  removeEventListener('scroll', scroll)
+  removeEventListener('scroll-design', (e) => onVisible(e as any))
 }
 </script>
 
 <template>
-  <div class="scroll-design" :visible="isVisible" :class="{ visible: !isVisible }">
+  <div class="scroll-design" :class="{ visible: !isVisible }">
     <div class="sd-line">
       <div>
         <transition enter-active-class="animate-in" leave-active-class="animate-out">
